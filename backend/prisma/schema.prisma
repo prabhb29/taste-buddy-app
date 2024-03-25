@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id           Int                @id @default(autoincrement())
+  email        String             @unique
+  username     String             @unique
+  password     String
+  description  String             @default("")
+  createDate   DateTime           @default(now())
+  isModerator Boolean @default(false)
+  savedRecipes UserSavedRecipes[]
+  rejectedRecommendedRecipes UserRejectedRecipes[]
+  recipes      Recipe[]
+  userPosts    UserPosts[]
+  profilePic   String             @default("")
+  dietaryPref  DietaryPref[]
+  folder       Folder[]
+}
+
+model UserSavedRecipes {
+  id        Int       @id @default(autoincrement())
+  userID    Int
+  user      User      @relation(fields: [userID], references: [id])
+  recipeID  Int
+  recipe    Recipe    @relation(fields: [recipeID], references: [id])
+  timeSaved DateTime  @default(now())
+  isShowing Boolean   @default(false)
+  folders   Folder[]  @relation("UserSavedRecipesToFolders")
+  @@unique([userID, recipeID])
+}
+
+model Folder {
+  id           Int                @id @default(autoincrement())
+  folderName   String
+  userID       Int
+  user         User               @relation(fields: [userID], references: [id])
+  savedRecipes UserSavedRecipes[] @relation("UserSavedRecipesToFolders")
+  @@unique([userID, folderName])
+}
+
+model UserRejectedRecipes {
+  id        Int       @id @default(autoincrement())
+  userID    Int
+  user      User      @relation(fields: [userID], references: [id])
+  recipeID  Int
+  @@unique([userID, recipeID])
+}
+
+model DietaryPref {
+  id                 Int                  @id @default(autoincrement())
+  author             User                 @relation(fields: [authorID], references: [id])
+  authorID           Int
+  dietaryPref        String
+}
+
+model Recipe {
+  id                 Int                  @id @default(autoincrement())
+  author             User                 @relation(fields: [authorID], references: [id])
+  authorID           Int
+  creationTime       DateTime             @default(now())
+  recipeTitle        String
+  description        String @db.LongText
+  cookTimeHours      Int?
+  cootTimeMinutes    Int
+  calories           Int?
+  servings           Int
+  ingredients  RecipeIngredients[]
+  instructions RecipeInstructions[]
+  recipeImage        String
+  tags               Tag[]                @relation("RecipeTags")
+  usersSaved         UserSavedRecipes[]
+  averageRating      Int                  @default(0)
+}
+
+model RecipeIngredients {
+  id              Int    @id @default(autoincrement())
+  recipeID        Int
+  recipe          Recipe @relation(fields: [recipeID], references: [id])
+  ingredient      String
+  amount          Int
+  measurementType String
+}
+
+model RecipeInstructions {
+  id          Int    @id @default(autoincrement())
+  recipeID    Int
+  recipe      Recipe @relation(fields: [recipeID], references: [id])
+  step        Int?
+  instruction String @db.LongText
+}
+
+model Tag {
+  id     Int       @id @default(autoincrement())
+  name    String   @unique
+  recipes Recipe[] @relation("RecipeTags")
+}
+
+model Posts {
+  id            Int         @id @default(autoincrement())
+  author        Int
+  description   String
+  tags          String
+  image         String
+  recipeURL     String
+  creationTime  DateTime    @default(now())
+  userPosts     UserPosts[]
+  postTags      PostTags[]
+  isDeleted     Boolean     @default(false)
+}
+model UserPosts {
+  postID    Int     @unique
+  author    Int
+  userID    User    @relation(fields: [author], references: [id], onDelete: Cascade)
+  post      Posts   @relation(fields: [postID], references: [id], onDelete: Cascade)
+}
+model PostTags {
+  id        Int         @id @default(autoincrement())
+  postID    Int
+  tag       String
+  postId    Posts       @relation(fields: [postID], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  recipeID      Int
+  reviewText    String      @db.LongText
+  rating        Int
+  userID        Int
+  username      String
+  profilePic    String
+  timePosted    DateTime    @default(now())
+}
